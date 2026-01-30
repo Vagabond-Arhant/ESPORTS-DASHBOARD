@@ -1,0 +1,236 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Beginner Game Advisor (Clean CSS)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <style>
+    
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #071022;
+      color: #eeeeff;
+      display: flex;
+      justify-content: center;
+      padding: 30px;
+      background-image:url(https://wallpapercave.com/wp/wp5766437.jpg);
+      background-size: cover;
+    }
+
+   
+
+    .box {
+      width: 100%;
+      max-width: 720px;
+      background-color:red rgba(0, 0, 0, 0.6);
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+
+ 
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    input {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #003333;
+      background-color: transparent;
+      color: #ffffff;
+      flex: 1;
+    }
+
+    button {
+      padding: 8px 10px;
+      border: none;
+      border-radius: 6px;
+      background-color:red;
+      color: #002244;
+      cursor: pointer;
+    }
+
+    
+
+    .muted {
+      color: #aaaacc;
+      font-size: 13px;
+    }
+
+   
+    #result {
+      margin-top: 12px;
+      background-color: black;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+   
+    .tag {
+      display: inline-block;
+      background-color: #0e3b4a;
+      padding: 4px 8px;
+      margin-right: 6px;
+      margin-top: 4px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="box">
+
+    <h1>Beginner Game Advisor</h1>
+
+    <div class="row">
+      <input id="q" placeholder="Type game name (e.g. Stardew Valley)">
+      <button id="go">Search</button>
+    </div>
+
+    <div id="status" class="muted">Type a game and click Search.</div>
+
+    <div id="result" style="display:none">
+      <div id="name" style="font-weight:700"></div>
+
+      <div id="genres" style="margin-top:8px"></div>
+
+      <div id="advice" style="margin-top:10px"></div>
+
+      <div id="why" class="muted" style="margin-top:8px"></div>
+    </div>
+
+  </div>
+
+
+<script>
+
+
+const RAWG_KEY = "c6ea97e599bf40d2b865a7bef250bc6c";
+const BASE = "https://api.rawg.io/api";
+
+
+const DIFFICULTY = {
+  "Casual": "Easy",
+  "Indie": "Easy",
+  "Puzzle": "Easy",
+  "Family": "Easy",
+  "Platformer": "Moderate",
+  "Adventure": "Moderate",
+  "Simulation": "Moderate",
+  "Racing": "Moderate",
+  "Sports": "Moderate",
+  "Shooter": "Moderate",
+  "Strategy": "Hard",
+  "RPG": "Hard",
+  "Fighting": "Hard",
+  "Massively Multiplayer": "Hard"
+};
+
+const q = document.getElementById("q");
+const go = document.getElementById("go");
+const statusEl = document.getElementById("status");
+const resultEl = document.getElementById("result");
+const nameEl = document.getElementById("name");
+const genresEl = document.getElementById("genres");
+const adviceEl = document.getElementById("advice");
+const whyEl = document.getElementById("why");
+
+async function fetchJson(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+async function searchGame(name) {
+  const url = `${BASE}/games?key=${RAWG_KEY}&search=${encodeURIComponent(name)}&page_size=1`;
+  const data = await fetchJson(url);
+  return data.results && data.results[0];
+}
+
+async function getGameDetails(id) {
+  const url = `${BASE}/games/${id}?key=${RAWG_KEY}`;
+  return fetchJson(url);
+}
+
+function inferDifficulty(genres) {
+  if (!genres || genres.length === 0) {
+    return {
+      difficulty: "Unknown",
+      reason: "No genre data available."
+    };
+  }
+
+  const votes = { Easy: 0, Moderate: 0, Hard: 0 };
+  const reasons = [];
+
+  genres.forEach(g => {
+    const d = DIFFICULTY[g.name] || "Moderate";
+    votes[d]++;
+    reasons.push(g.name + " → " + d);
+  });
+
+  let final = "Moderate";
+  if (votes.Easy > votes.Moderate && votes.Easy > votes.Hard) final = "Easy";
+  if (votes.Hard > votes.Easy && votes.Hard > votes.Moderate) final = "Hard";
+
+  return {
+    difficulty: final,
+    reason: reasons.join("; ")
+  };
+}
+
+
+go.addEventListener("click", async () => {
+  const text = q.value.trim();
+  if (!text) {
+    statusEl.textContent = "Please type a game name.";
+    return;
+  }
+
+  statusEl.textContent = "Searching RAWG...";
+  resultEl.style.display = "none";
+
+  const found = await searchGame(text);
+  if (!found) {
+    statusEl.textContent = "No game found.";
+    return;
+  }
+
+  statusEl.textContent = "Loading details...";
+  const d = await getGameDetails(found.id);
+
+  nameEl.textContent = d.name;
+
+  genresEl.innerHTML = (d.genres || [])
+    .map(g => `<span class="tag">${g.name}</span>`)
+    .join("");
+
+  const info = inferDifficulty(d.genres);
+
+  adviceEl.innerHTML = "Beginner friendliness: <strong>" + info.difficulty + "</strong>";
+  whyEl.textContent = info.reason;
+
+  resultEl.style.display = "block";
+  statusEl.textContent = "Done!";
+});
+</script>
+
+</body>
+</html>

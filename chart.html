@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Live Gaming Streams</title>
+
+  <script src="https://embed.twitch.tv/embed/v1.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<style>
+body{
+background-image: url(https://wallpapers.com/images/hd/red-gaming-background-wo9fi49j17dpth5t.jpg);
+
+
+}
+h1{
+color: aliceblue;
+font-size: 2.5rem;
+}
+#chrt{
+background-color: rgb(179, 2, 2);
+box-shadow: 1px 1px 1px grey;
+height: 40px;
+width: 120px;
+border-radius: 10px;
+position: absolute;
+top: 24px;
+left:1170px;
+}
+a{
+color: white;
+font-size: 1.2rem;
+text-decoration: none;
+}
+</style>
+
+
+
+<body>
+    
+
+<h1 style="text-align:center">Live Stream Viewers</h1>
+<button id="chrt"> <a href="stream.html"> Live Stream</a> </button>
+
+<canvas id="strmChart"></canvas>
+
+
+<script>
+
+let labels = [];
+let dataa = [];
+
+const CLIENT_ID = "bo071zn1enc3ddqpxo6sphg6eg2fqg";
+const CLIENT_SECRET = "18j8a5b3pn9n45qogv2ysyrj0fkiuh";
+
+async function getToken() {
+  const url = `https://id.twitch.tv/oauth2/token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&grant_type=client_credentials`;
+  const res = await fetch(url, { method: "POST" });
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function fetchStreams() {
+  const token = await getToken();
+
+  const res = await fetch("https://api.twitch.tv/helix/streams", {
+    headers: { "Client-ID": CLIENT_ID, "Authorization": `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+
+  data.data.forEach(stream => {
+    labels.push(stream.game_name);
+    dataa.push(stream.viewer_count);
+
+    console.log("Game:", stream.game_name);
+    console.log("Viewers:", stream.viewer_count);
+  });
+
+  generateChart();
+}
+
+function generateChart() {
+  const mychart = document.getElementById("strmChart");
+
+  new Chart(mychart, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Live Viewers",
+        data: dataa,
+        borderWidth: 2,
+        backgroundColor: "black",
+        borderColor:"red"
+      }]
+    }
+  });
+}
+
+fetchStreams();
+</script>
+
+</body>
+</html>
